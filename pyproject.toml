@@ -5,12 +5,15 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "task_then_motion_planning"
 version = "0.1.0"
-description = "A basic starter for Python packages."
+description = " Task planning and greedy execution."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
    "matplotlib",
    "numpy",
+   "relational_structs@git+https://github.com/tomsilver/relational-structs.git",
+   "tomsutils@git+https://github.com/tomsilver/toms-utils.git",
+   "gymnasium",
 ]
 
 [project.optional-dependencies]
