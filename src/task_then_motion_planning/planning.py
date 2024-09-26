@@ -81,6 +81,7 @@ class TaskThenMotionPlanner(Generic[_Observation, _Action]):
             self._current_operator = self._current_task_plan.pop(0)
             # Get a skill that can execute this operator.
             self._current_skill = self._get_skill_for_operator(self._current_operator)
+            self._current_skill.reset(self._current_operator)
 
         assert self._current_skill is not None
         return self._current_skill.get_action(obs)
