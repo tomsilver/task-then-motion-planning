@@ -3,7 +3,12 @@
 import abc
 from typing import Generic, Sequence, TypeVar
 
-from relational_structs import GroundOperator, LiftedOperator, Object
+from relational_structs import (
+    GroundAtom,
+    GroundOperator,
+    LiftedOperator,
+    Object,
+)
 
 _Observation = TypeVar("_Observation")
 _Action = TypeVar("_Action")
@@ -68,3 +73,27 @@ class LiftedOperatorSkill(Skill[_Observation, _Action]):
         assert self._current_ground_operator is not None
         objects = self._current_ground_operator.parameters
         return self._get_action_given_objects(objects, obs)
+
+
+class Perceiver(abc.ABC, Generic[_Observation]):
+    """Turns observations into objects, ground atoms, and goals.
+
+    A perceiver may use internal memory to produce predicates, so it
+    needs to be reset after every "episode".
+
+    Assumes that object sets and goals do not change within an episode.
+    """
+
+    @abc.abstractmethod
+    def reset(
+        self, obs: _Observation
+    ) -> tuple[set[Object], set[GroundAtom], set[GroundAtom]]:
+        """Called at the beginning of each new episode.
+
+        Resets internal memory and returns known objects, ground atoms
+        in the initial state, and goal.
+        """
+
+    @abc.abstractmethod
+    def step(self, obs: _Observation) -> set[GroundAtom]:
+        """Get the current ground atoms and advance memory."""
