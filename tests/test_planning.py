@@ -222,7 +222,9 @@ def test_task_then_motion_planner():
     skills = {PickUpSkill(), DropOffSkill()}
 
     # Create the planner.
-    planner = TaskThenMotionPlanner(types, predicates, perceiver, operators, skills)
+    planner = TaskThenMotionPlanner(
+        types, predicates, perceiver, operators, skills, planner_id="pyperplan"
+    )
 
     # Run an episode.
     obs, _ = env.reset(seed=123)
