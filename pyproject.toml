@@ -13,7 +13,7 @@ dependencies = [
    "numpy",
    "relational_structs@git+https://github.com/tomsilver/relational-structs.git",
    "tomsutils@git+https://github.com/tomsilver/toms-utils.git",
-   "gymnasium",
+   "gymnasium[toy-text]",
 ]
 
 [project.optional-dependencies]

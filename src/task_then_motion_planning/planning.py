@@ -69,15 +69,15 @@ class TaskThenMotionPlanner(Generic[_Observation, _Action]):
         # Get the current atoms.
         atoms = self._perceiver.step(obs)
 
-        # If there is no more plan to execute, fail.
-        if not self._current_task_plan:
-            raise TaskThenMotionPlanningFailure("Empty task plan")
-
         # If the current operator is None or terminated, get the next one.
         if self._current_operator is None or (
             self._current_operator.add_effects.issubset(atoms)
             and not (self._current_operator.delete_effects & atoms)
         ):
+            # If there is no more plan to execute, fail.
+            if not self._current_task_plan:
+                raise TaskThenMotionPlanningFailure("Empty task plan")
+
             self._current_operator = self._current_task_plan.pop(0)
             # Get a skill that can execute this operator.
             self._current_skill = self._get_skill_for_operator(self._current_operator)

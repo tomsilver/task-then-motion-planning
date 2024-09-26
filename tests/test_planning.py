@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import abc
 from typing import Sequence
 
 import gymnasium as gym
+import numpy as np
 from relational_structs import (
     GroundAtom,
     GroundOperator,
@@ -13,6 +15,7 @@ from relational_structs import (
     Predicate,
     Type,
 )
+from tomsutils.search import run_astar
 
 from task_then_motion_planning.planning import TaskThenMotionPlanner
 from task_then_motion_planning.structs import LiftedOperatorSkill, Perceiver
@@ -22,10 +25,22 @@ def test_task_then_motion_planner():
     """Tests for TaskThenMotionPlanner()."""
 
     # Create the environment.
-    env = gym.make("Taxi-v3")
+    env = gym.make("Taxi-v3", render_mode="rgb_array")
+    grid = np.array(
+        [
+            [0, 0, 1, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 1, 0, 1, 0, 0],
+            [0, 1, 0, 1, 0, 0],
+        ]
+    )
+
+    # Uncomment for visualizations.
+    # env = gym.wrappers.RecordVideo(env, "taxi-test")
 
     # Helper function for parsing observations.
-    dropoff_locs = [(0, 0), (0, 4), (4, 0), (4, 3)]
+    dropoff_locs = list(env.unwrapped.locs)
 
     def _parse_taxi_obs(
         i: int,
@@ -41,7 +56,7 @@ def test_task_then_motion_planner():
         assert 0 <= i < 5
         taxi_row, taxi_col, pass_loc_idx, dest_idx = reversed(out)
         taxi_loc = (taxi_row, taxi_col)
-        if pass_loc_idx > len(dropoff_locs):
+        if pass_loc_idx >= len(dropoff_locs):
             pass_loc: tuple[int, int] | None = None
         else:
             pass_loc = dropoff_locs[pass_loc_idx]
@@ -127,41 +142,82 @@ def test_task_then_motion_planner():
     operators = {PickUpOperator, DropOffOperator}
 
     # Create skills.
-    class PickUpSkill(LiftedOperatorSkill[int, int]):
-        """Pick up skill."""
+    class TaxiSkill(LiftedOperatorSkill[int, int]):
+        """Shared functionality."""
 
         def __init__(self) -> None:
             super().__init__()
             self._action_queue: list[int] = []
 
+        @abc.abstractmethod
+        def _get_final_action(self) -> int:
+            raise NotImplementedError
+
         def reset(self, ground_operator: GroundOperator) -> None:
             self._action_queue = []
+            return super().reset(ground_operator)
+
+        def _get_action_given_objects(self, objects: Sequence[Object], obs: int) -> int:
+            if self._action_queue:
+                return self._action_queue.pop(0)
+
+            taxi_loc, _, _ = _parse_taxi_obs(obs)
+            _, _, destination = objects
+            destination_loc = (
+                int(destination.name.split("-")[1]),
+                int(destination.name.split("-")[2]),
+            )
+            dest_r, dest_c = destination_loc
+            initial_state = taxi_loc
+
+            check_goal = lambda s: s == destination_loc
+
+            delta_to_move_action = {
+                (1, 0): 0,
+                (-1, 0): 1,
+                (0, 1): 2,
+                (0, -1): 3,
+            }
+
+            def get_successors(s):
+                r, c = s
+                for (dr, dc), action in delta_to_move_action.items():
+                    new_row, new_col = r + dr, c + dc
+                    if not (
+                        0 <= new_row < grid.shape[0] and 0 <= new_col < grid.shape[1]
+                    ):
+                        continue
+                    if grid[new_row, new_col]:
+                        continue
+                    yield (action, (new_row, new_col), 1.0)
+
+            def heuristic(s):
+                r, c = s
+                return abs(r - dest_r) + abs(c - dest_c)
+
+            _, actions = run_astar(initial_state, check_goal, get_successors, heuristic)
+            assert actions
+            self._action_queue = list(actions) + [self._get_final_action()]
+
+            return self._action_queue.pop(0)
+
+    class PickUpSkill(TaxiSkill):
+        """Pick up skill."""
+
+        def _get_final_action(self) -> int:
+            return 4  # pick up
 
         def _get_lifted_operator(self) -> LiftedOperator:
             return PickUpOperator
 
-        def _get_action_given_objects(self, objects: Sequence[Object], obs: int) -> int:
-            # TODO use A star to implement
+    class DropOffSkill(TaxiSkill):
+        """Dropoff skill."""
 
-            return self._action_queue.pop(0)
-
-    class DropOffSkill(LiftedOperatorSkill[int, int]):
-        """Pick up skill."""
-
-        def __init__(self) -> None:
-            super().__init__()
-            self._action_queue: list[int] = []
-
-        def reset(self, ground_operator: GroundOperator) -> None:
-            self._action_queue = []
+        def _get_final_action(self) -> int:
+            return 5  # drop off
 
         def _get_lifted_operator(self) -> LiftedOperator:
             return DropOffOperator
-
-        def _get_action_given_objects(self, objects: Sequence[Object], obs: int) -> int:
-            # TODO use A star to implement
-
-            return self._action_queue.pop(0)
 
     skills = {PickUpSkill(), DropOffSkill()}
 
@@ -171,10 +227,12 @@ def test_task_then_motion_planner():
     # Run an episode.
     obs, _ = env.reset(seed=123)
     planner.reset(obs)
-    for _ in range(1000):  # should terminate earlier
+    for _ in range(100):  # should terminate earlier
         action = planner.step(obs)
         obs, _, done, _, _ = env.step(action)
         if done:  # goal reached!
             break
     else:
         assert False, "Goal not reached"
+
+    env.close()
