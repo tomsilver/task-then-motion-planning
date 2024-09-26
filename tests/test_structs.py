@@ -2,9 +2,9 @@
 
 from typing import Sequence
 
-from relational_structs import LiftedOperator, Object, Predicate, Type
+from relational_structs import GroundAtom, LiftedOperator, Object, Predicate, Type
 
-from task_then_motion_planning.structs import LiftedOperatorSkill
+from task_then_motion_planning.structs import LiftedOperatorSkill, Perceiver
 
 
 def test_lifted_operator_skill():
@@ -47,3 +47,39 @@ def test_lifted_operator_skill():
     skill.reset(ground_operator)
     action = skill.get_action(5)
     assert action == 8
+
+
+def test_perceiver():
+    """Tests for Perceiver()."""
+    cup_type = Type("cup_type")
+    plate_type = Type("plate_type")
+    on = Predicate("On", [cup_type, plate_type])
+    not_on = Predicate("NotOn", [cup_type, plate_type])
+    cup = cup_type("cup")
+    plate = plate_type("plate")
+
+    class CupPlatePerceiver(Perceiver[int]):
+        """Test perceiver."""
+
+        def reset(
+            self, obs: int
+        ) -> tuple[set[Object], set[GroundAtom], set[GroundAtom]]:
+            objects = {cup, plate}
+            atoms = {GroundAtom(not_on, [cup, plate])}
+            goal = {GroundAtom(on, [cup, plate])}
+            return objects, atoms, goal
+
+        def step(self, obs: int) -> set[GroundAtom]:
+            if obs == 0:
+                return {GroundAtom(not_on, [cup, plate])}
+            return {GroundAtom(on, [cup, plate])}
+
+    perceiver = CupPlatePerceiver()
+    objects, atoms, goal = perceiver.reset(0)
+    assert objects == {cup, plate}
+    assert atoms == {GroundAtom(not_on, [cup, plate])}
+    assert goal == {GroundAtom(on, [cup, plate])}
+    atoms = perceiver.step(0)
+    assert atoms == {GroundAtom(not_on, [cup, plate])}
+    atoms = perceiver.step(1)
+    assert atoms == {GroundAtom(on, [cup, plate])}
