@@ -1,6 +1,6 @@
 """Tests for structs.py."""
 
-from typing import Sequence
+from typing import Any, Sequence
 
 from relational_structs import GroundAtom, LiftedOperator, Object, Predicate, Type
 
@@ -62,7 +62,9 @@ def test_perceiver():
         """Test perceiver."""
 
         def reset(
-            self, obs: int
+            self,
+            obs: int,
+            info: dict[str, Any],
         ) -> tuple[set[Object], set[GroundAtom], set[GroundAtom]]:
             objects = {cup, plate}
             atoms = {GroundAtom(not_on, [cup, plate])}
@@ -75,7 +77,7 @@ def test_perceiver():
             return {GroundAtom(on, [cup, plate])}
 
     perceiver = CupPlatePerceiver()
-    objects, atoms, goal = perceiver.reset(0)
+    objects, atoms, goal = perceiver.reset(0, {})
     assert objects == {cup, plate}
     assert atoms == {GroundAtom(not_on, [cup, plate])}
     assert goal == {GroundAtom(on, [cup, plate])}

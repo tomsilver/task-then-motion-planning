@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import abc
-from typing import Sequence
+from typing import Any, Sequence
 
 import gymnasium as gym
 import numpy as np
@@ -87,7 +87,9 @@ def test_task_then_motion_planner():
             }
 
         def reset(
-            self, obs: int
+            self,
+            obs: int,
+            info: dict[str, Any],
         ) -> tuple[set[Object], set[GroundAtom], set[GroundAtom]]:
             objects = {self._taxi, self._passenger} | set(self._destinations.values())
             atoms, goal = self._parse_observation(obs)
@@ -227,8 +229,8 @@ def test_task_then_motion_planner():
     )
 
     # Run an episode.
-    obs, _ = env.reset(seed=123)
-    planner.reset(obs)
+    obs, info = env.reset(seed=123)
+    planner.reset(obs, info)
     for _ in range(100):  # should terminate earlier
         action = planner.step(obs)
         obs, _, done, _, _ = env.step(action)

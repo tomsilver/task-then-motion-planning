@@ -1,6 +1,6 @@
 """Planning interface."""
 
-from typing import Generic
+from typing import Any, Generic
 
 from relational_structs import (
     GroundOperator,
@@ -48,9 +48,9 @@ class TaskThenMotionPlanner(Generic[_Observation, _Action]):
         self._current_operator: GroundOperator | None = None
         self._current_skill: Skill | None = None
 
-    def reset(self, obs: _Observation) -> None:
+    def reset(self, obs: _Observation, info: dict[str, Any]) -> None:
         """Reset on a new task instance."""
-        objects, atoms, goal = self._perceiver.reset(obs)
+        objects, atoms, goal = self._perceiver.reset(obs, info)
         self._current_problem = PDDLProblem(
             self._domain_name, self._domain_name, objects, atoms, goal
         )
