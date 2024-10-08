@@ -1,7 +1,7 @@
 """Data structures."""
 
 import abc
-from typing import Generic, Sequence, TypeVar
+from typing import Any, Generic, Sequence, TypeVar
 
 from relational_structs import (
     GroundAtom,
@@ -86,7 +86,9 @@ class Perceiver(abc.ABC, Generic[_Observation]):
 
     @abc.abstractmethod
     def reset(
-        self, obs: _Observation
+        self,
+        obs: _Observation,
+        info: dict[str, Any],
     ) -> tuple[set[Object], set[GroundAtom], set[GroundAtom]]:
         """Called at the beginning of each new episode.
 
