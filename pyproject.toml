@@ -11,6 +11,7 @@ requires-python = ">=3.10"
 dependencies = [
    "matplotlib",
    "numpy",
+   "prpl_utils@git+https://github.com/Princeton-Robot-Planning-and-Learning/prpl-mono.git#subdirectory=prpl-utils",
    "relational_structs@git+https://github.com/Princeton-Robot-Planning-and-Learning/prpl-mono.git#subdirectory=relational-structs",
    "tomsutils@git+https://github.com/tomsilver/toms-utils.git",
    "gymnasium[toy-text]",
